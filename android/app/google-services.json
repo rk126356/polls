@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "511767339057",
+    "project_id": "pollapp-905db",
+    "storage_bucket": "pollapp-905db.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:511767339057:android:85e55f21c1ac80e32df510",
+        "android_client_info": {
+          "package_name": "com.raihansk.polls"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3TMv6IBkjx9FmANcXSewGo4I9zhdd5aw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
