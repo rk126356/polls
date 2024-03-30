@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'user_model.dart';
+
 class ListsModel {
   final String id;
   final String name;
@@ -7,6 +9,7 @@ class ListsModel {
   final List<String> lists;
   final Timestamp createdAt;
   final Timestamp updatedAt;
+  UserModel? user;
 
   ListsModel({
     required this.id,
@@ -15,6 +18,7 @@ class ListsModel {
     required this.lists,
     required this.createdAt,
     required this.updatedAt,
+    this.user,
   });
 
   factory ListsModel.fromJson(Map<String, dynamic> json) {

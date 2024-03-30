@@ -37,15 +37,9 @@ class _WelcomeDebugScreenState extends State<WelcomeDebugScreen> {
       final userDocSnapshot = await userDoc.get();
 
       if (userDocSnapshot.exists) {
-        userProvider.setUserData(UserModel(
-          userId: userDocSnapshot['uid'],
-          email: userDocSnapshot['email'] ?? '',
-          bio: userDocSnapshot['bio'] ?? '',
-          name: userDocSnapshot['name'] ?? '',
-          avatarUrl: userDocSnapshot['avatarUrl'] ?? '',
-          mobileNumber: userDocSnapshot['mobileNumber'] ?? '',
-          userName: userDocSnapshot['userName'] ?? '',
-        ));
+        final user =
+            UserModel.fromJson(userDocSnapshot.data() as Map<String, dynamic>);
+        userProvider.setUserData(user);
 
         setState(() {
           _isLoggedIn = true;

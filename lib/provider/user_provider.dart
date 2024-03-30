@@ -40,14 +40,7 @@ class UserProvider extends ChangeNotifier {
   }
 
   setUserData(UserModel user) {
-    _userData = UserModel(
-      name: user.name,
-      email: user.email,
-      avatarUrl: user.avatarUrl,
-      userId: user.userId,
-      mobileNumber: user.mobileNumber,
-      userName: user.userName,
-    );
+    _userData = user;
     notifyListeners();
   }
 

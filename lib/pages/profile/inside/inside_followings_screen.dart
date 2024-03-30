@@ -1,12 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:polls/utils/snackbar_widget.dart';
 import 'package:polls/widgets/loading_user_box_widget.dart';
 import 'package:polls/widgets/user_box_widget.dart';
 
 import '../../../const/colors.dart';
 import '../../../const/fonts.dart';
 import '../../../models/user_model.dart';
+import '../../../widgets/custom_error_box_wdiget.dart';
+import '../../search/inside_search_screen.dart';
 
 class InsideFollowingsScreen extends StatefulWidget {
   final String userID;
@@ -66,23 +69,9 @@ class _InsideFollowingsScreenState extends State<InsideFollowingsScreen> {
     lastDocument = followingRef.docs.isNotEmpty ? followingRef.docs.last : null;
 
     if (followingRef.docs.isEmpty) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('error'),
-            content: const Text('no more followings available.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('ok'),
-              ),
-            ],
-          );
-        },
-      );
+      if (next) {
+        showCoolErrorSnackbar(context, 'no more followings available.');
+      }
       setState(() {
         _isButtonLoading = false;
         _isLoading = false;
@@ -144,7 +133,17 @@ class _InsideFollowingsScreenState extends State<InsideFollowingsScreen> {
           'folllowings',
           style: AppFonts.headingTextStyle,
         ),
-        actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.search))],
+        actions: [
+          IconButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const InsdieSearchScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.search))
+        ],
       ),
       body: Column(
         children: [
@@ -229,7 +228,8 @@ class _InsideFollowingsScreenState extends State<InsideFollowingsScreen> {
                 )
               : users.isEmpty
                   ? Center(
-                      child: Text('@${widget.username} have no followers'),
+                      child: CustomErrorBox(
+                          text: '@${widget.username} have no followings'),
                     )
                   : Expanded(
                       child: ListView.builder(

@@ -13,28 +13,20 @@ Future<VotedModel> checkIfVoted(PollModel poll) async {
 
     try {
       final pollRef = await FirebaseFirestore.instance
-          .collection('allPolls')
-          .doc(poll.id)
-          .collection('votes')
-          .doc(uid)
+          .collection('allVotes')
+          .where('userId', isEqualTo: uid)
+          .where('pollId', isEqualTo: poll.id)
           .get();
 
-      if (pollRef.exists) {
-        final data = pollRef.data();
+      if (pollRef.docs.isNotEmpty) {
+        final data = pollRef.docs.first.data();
 
-        if (data != null) {
-          final voted = VotedModel(
-              isVoted: true,
-              option: data['option'],
-              userId: data['userId'],
-              pollId: data['pollId']);
-          return voted;
-        } else {
-          final voted = VotedModel(
-            isVoted: false,
-          );
-          return voted;
-        }
+        final voted = VotedModel(
+            isVoted: true,
+            option: data['option'],
+            userId: data['userId'],
+            pollId: data['pollId']);
+        return voted;
       } else {
         final voted = VotedModel(
           isVoted: false,
@@ -65,13 +57,72 @@ Future<bool> checkIfViewed(PollModel poll) async {
 
     try {
       final pollRef = await FirebaseFirestore.instance
-          .collection('allPolls')
-          .doc(poll.id)
-          .collection('views')
-          .doc(uid)
+          .collection('allViews')
+          .where('userId', isEqualTo: uid)
+          .where('pollId', isEqualTo: poll.id)
           .get();
 
-      if (pollRef.exists) {
+      if (pollRef.docs.isNotEmpty) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      if (kDebugMode) {
+        print('Error adding poll played to Firestore: $error');
+      }
+
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+Future<bool> checkIfShared(PollModel poll) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    final uid = user.uid;
+
+    try {
+      final pollRef = await FirebaseFirestore.instance
+          .collection('allShares')
+          .where('userId', isEqualTo: uid)
+          .where('pollId', isEqualTo: poll.id)
+          .get();
+
+      if (pollRef.docs.isNotEmpty) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      if (kDebugMode) {
+        print('Error adding poll played to Firestore: $error');
+      }
+
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+Future<bool> checkIfSeen(PollModel poll) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    final uid = user.uid;
+
+    try {
+      final pollRef = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('mySeenPolls')
+          .where('userId', isEqualTo: uid)
+          .where('pollId', isEqualTo: poll.id)
+          .get();
+
+      if (pollRef.docs.isNotEmpty) {
         return true;
       } else {
         return false;

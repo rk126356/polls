@@ -7,11 +7,14 @@ import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:polls/const/fonts.dart';
+import 'package:polls/pages/profile/inside/my_activity_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../const/colors.dart';
 import '../pages/extra/settings_screen.dart';
+import '../pages/profile/inside/inside_user_lists_screen.dart';
+import '../pages/profile/inside/inside_user_polls_screen.dart';
 import '../pages/profile/my_bookmarks_screen.dart';
 import '../provider/user_provider.dart';
 import '../utils/url_launcher.dart';
@@ -68,28 +71,58 @@ class _NavBarState extends State<NavBar> {
           ),
           ListTile(
             leading: const Icon(
-              Icons.history,
+              Icons.remove_red_eye_outlined,
               color: AppColors.secondaryColor,
             ),
             title: Text(
-              'recently voted',
-              style: AppFonts.bodyTextStyle,
-            ),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(
-              Icons.bookmark,
-              color: AppColors.secondaryColor,
-            ),
-            title: Text(
-              'my bookmarks',
+              'just viewed',
               style: AppFonts.bodyTextStyle,
             ),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const MyBookmarksScreen(),
+                  builder: (context) => InsideUserPollsScreen(
+                    uid: provider.userData.userId,
+                    username: provider.userData.userName,
+                  ),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(
+              Icons.list,
+              color: AppColors.secondaryColor,
+            ),
+            title: Text(
+              'my lists',
+              style: AppFonts.bodyTextStyle,
+            ),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => InsideUserListsScreen(
+                    uid: provider.userData.userId,
+                    username: provider.userData.userName,
+                    count: provider.userData.noOfLists,
+                  ),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(
+              Icons.history,
+              color: AppColors.secondaryColor,
+            ),
+            title: Text(
+              'my activity',
+              style: AppFonts.bodyTextStyle,
+            ),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const MyActivityScreen(),
                 ),
               );
             },

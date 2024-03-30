@@ -1,6 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:polls/pages/search/inside_search_screen.dart';
+import 'package:polls/pages/topics/inside/inside_all_tags_screen.dart';
+import 'package:polls/utils/snackbar_widget.dart';
+import 'package:polls/widgets/custom_error_box_wdiget.dart';
 import 'package:polls/widgets/loading_user_box_widget.dart';
 import 'package:polls/widgets/user_box_widget.dart';
 
@@ -66,23 +70,9 @@ class _InsideFollowersScreenState extends State<InsideFollowersScreen> {
     lastDocument = followingRef.docs.isNotEmpty ? followingRef.docs.last : null;
 
     if (followingRef.docs.isEmpty) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('error'),
-            content: const Text('no more followers available.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('ok'),
-              ),
-            ],
-          );
-        },
-      );
+      if (next) {
+        showCoolErrorSnackbar(context, 'no more followers available.');
+      }
       setState(() {
         _isButtonLoading = false;
         _isLoading = false;
@@ -144,7 +134,17 @@ class _InsideFollowersScreenState extends State<InsideFollowersScreen> {
           'followers',
           style: AppFonts.headingTextStyle,
         ),
-        actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.search))],
+        actions: [
+          IconButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const InsdieSearchScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.search))
+        ],
       ),
       body: Column(
         children: [
@@ -229,7 +229,8 @@ class _InsideFollowersScreenState extends State<InsideFollowersScreen> {
                 )
               : users.isEmpty
                   ? Center(
-                      child: Text('@${widget.username} have no followers'),
+                      child: CustomErrorBox(
+                          text: '@${widget.username} have no followers'),
                     )
                   : Expanded(
                       child: ListView.builder(

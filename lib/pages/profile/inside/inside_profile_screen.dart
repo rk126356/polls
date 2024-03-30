@@ -11,6 +11,7 @@ import 'package:polls/models/polls_model.dart';
 import 'package:polls/pages/profile/edit_profile.dart';
 import 'package:polls/pages/profile/inside/inside_followers_screen.dart';
 import 'package:polls/pages/profile/inside/inside_followings_screen.dart';
+import 'package:polls/pages/profile/inside/inside_user_lists_screen.dart';
 import 'package:polls/pages/profile/inside/inside_user_polls_screen.dart';
 import 'package:polls/utils/url_launcher.dart';
 import 'package:polls/widgets/loading_polls_shimmer_widget.dart';
@@ -23,6 +24,7 @@ import '../../../controllers/check_if_tasks.dart';
 import '../../../controllers/fetch_user.dart';
 import '../../../models/user_model.dart';
 import '../../../provider/user_provider.dart';
+import '../../../widgets/custom_error_box_wdiget.dart';
 
 class InsideProfileScreen extends StatefulWidget {
   final String userId;
@@ -209,7 +211,7 @@ class _InsideProfileScreenState extends State<InsideProfileScreen> {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(8.0),
-                      child: Text("no polls found"),
+                      child: CustomErrorBox(text: 'no polls available!'),
                     ),
                   );
                 }
@@ -232,7 +234,7 @@ class _InsideProfileScreenState extends State<InsideProfileScreen> {
                           });
                         },
                       ),
-                      if (index + 1 == _polls.length)
+                      if (_polls.length > 10)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 30.0),
                           child: Center(
@@ -544,6 +546,17 @@ class _ProfileStats extends StatelessWidget {
               builder: (context) => InsideUserPollsScreen(
                 uid: user.userId,
                 username: user.userName,
+              ),
+            ),
+          );
+        }),
+        _StatItem("lists", '${user.noOfLists ?? 0}', () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => InsideUserListsScreen(
+                uid: user.userId,
+                username: user.userName,
+                count: user.noOfLists,
               ),
             ),
           );

@@ -99,7 +99,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         Tab(text: 'trending'),
                         Tab(text: 'new'),
                         Tab(text: 'views'),
-                        Tab(text: 'lists'),
+                        Tab(text: 'votes'),
                       ],
                       labelColor: Colors.white,
                       unselectedLabelColor: Colors.grey[400],
@@ -107,18 +107,14 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                   ),
                   SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.4,
+                    height: MediaQuery.of(context).size.height * 0.65,
                     child: const TabBarView(
                       physics: ScrollPhysics(),
                       children: [
-                        // Contents for Trending tab
-                        Center(child: Text('Trending Content')),
-                        // Contents for New tab
-                        Center(child: Text('New Content')),
-                        // Contents for Views tab
-                        Center(child: Text('Views Content')),
-                        // Contents for Random tab
-                        Center(child: Text('Random Content')),
+                        Text('Tab'),
+                        Text('Tab'),
+                        Text('Tab'),
+                        Text('Tab'),
                       ],
                     ),
                   ),

@@ -10,6 +10,7 @@ import 'package:polls/const/colors.dart';
 import 'package:polls/controllers/poll_firebase/tags_controller_firebase.dart';
 import 'package:polls/provider/user_provider.dart';
 import 'package:polls/utils/generate_random_id.dart';
+import 'package:polls/utils/publish.dart';
 import 'package:polls/utils/snackbar_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:autocomplete_textfield/autocomplete_textfield.dart';
@@ -86,7 +87,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
   _CreatePollScreenState() {
     textField = SimpleAutoCompleteTextField(
       key: key,
-      suggestions: suggestions,
+      suggestions: [],
       autofocus: true,
       decoration: InputDecoration(
         labelText: 'add tags',
@@ -125,9 +126,9 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
           return;
         }
 
-        if (text.length > 20) {
+        if (text.length > 30) {
           Navigator.pop(context);
-          showCoolErrorSnackbar(context, 'max tag length is 20');
+          showCoolErrorSnackbar(context, 'max tag length is 30');
           return;
         }
         if (text.isNotEmpty &&
@@ -176,17 +177,6 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
       }),
     );
   }
-
-  List<String> suggestions = [
-    "sports",
-    "technology",
-    "movies",
-    "food",
-    "travel",
-    "music",
-    "fashion",
-    "health",
-  ];
 
   SimpleAutoCompleteTextField? textField;
   SimpleAutoCompleteTextField? listsField;
@@ -251,30 +241,31 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Container(
-                      padding: const EdgeInsets.only(
-                          top: 8, left: 8, right: 8, bottom: 8),
-                      decoration: const BoxDecoration(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 12),
+                      decoration: BoxDecoration(
                         color: AppColors.secondaryColor,
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(12),
-                        ),
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: TextFormField(
                         maxLength: _question.length < 180 ? null : 180,
                         maxLines: null,
-                        style: AppFonts.bodyTextStyle.copyWith(
-                          color: Colors.white,
-                        ),
+                        style: AppFonts.bodyTextStyle
+                            .copyWith(color: Colors.white),
                         decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.all(0),
                           labelText: 'write your poll',
                           labelStyle: AppFonts.bodyTextStyle.copyWith(
-                            color: Colors.white,
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 16,
                           ),
-                          border: const OutlineInputBorder(
-                            borderSide: BorderSide.none,
-                            // Remove border side
-                          ),
+                          border: InputBorder.none,
                         ),
                         onChanged: (value) {
                           setState(() {
@@ -284,7 +275,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                       ),
                     ),
                     const SizedBox(
-                      height: 8,
+                      height: 10,
                     ),
                     _questionImage == null
                         ? GestureDetector(
@@ -500,7 +491,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                                       labelText: 'option ${index + 1}',
                                       labelStyle:
                                           AppFonts.bodyTextStyle.copyWith(
-                                        color: Colors.white,
+                                        color: Colors.white.withOpacity(0.8),
                                       ),
                                       border: const OutlineInputBorder(
                                         borderSide: BorderSide.none,
@@ -658,21 +649,20 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
       showCoolErrorSnackbar(context, 'please add a tag');
       return;
     }
-
     for (int i = 0; i < _options.length; i++) {
       final option1 = _options[i];
+      int count = 0;
       for (int j = 0; j < _options.length; j++) {
         final option2 = _options[j];
-        int count = 0;
-        if (option1.text == option2.text) {
-          print(option1.text == option2.text);
+        if (i != j &&
+            option1.text.toLowerCase() == option2.text.toLowerCase()) {
           count++;
         }
-        if (count > 1) {
-          showCoolErrorSnackbar(
-              context, "duplicate option found!\noptions can't be the same.");
-          return;
-        }
+      }
+      if (count > 0) {
+        showCoolErrorSnackbar(
+            context, "duplicate option found!\noptions can't be the same.");
+        return;
       }
     }
 
@@ -695,6 +685,10 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
       }
     }
 
+    setState(() {
+      _isLoading = true;
+    });
+
     if (image) {
       for (var i = 0; i < _optionImages.length; i++) {
         final path = checkImageType(_optionImages[i]!.path);
@@ -704,17 +698,13 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
               'https://res.cloudinary.com/dt6hd2ofm/image/upload/v1709403952/admin/smiqvsrzzjfhqyf3rnay.png';
         } else if (path == 'wrong') {
           _options[i].imageUrl =
-              'https://res.cloudinary.com/dt6hd2ofm/image/upload/v1709403971/admin/pbo7oklcfanggshspciy.png';
+              'https://res.cloudinary.com/dt6hd2ofm/image/upload/v1709403971/admin/phcjjlfyarakqfgacwq4.png';
         } else {
           _options[i].imageUrl =
               await uploadImageToCloudinary(_optionImages[i]!);
         }
       }
     }
-
-    setState(() {
-      _isLoading = true;
-    });
 
     PollModel poll = PollModel(
       id: generateRandomId(8),
@@ -738,7 +728,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
     poll.searchFields!.add(poll.id);
 
     if (_playlist != null) {
-      final listId = await saveListName(context, poll, _playlist!);
+      final listId = await saveListName(context, poll.id, _playlist!, false);
       if (listId.isNotEmpty) {
         poll.listId = listId;
       }
@@ -748,11 +738,23 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
       saveTag(tag);
     }
 
+    await publishPost(
+        '${poll.question} - ID: ${poll.id}', generatePostContent(poll), poll);
+
     await addPollToFirestore(poll);
+
+    _question = '';
+    _tags.clear();
+    _playlist = null;
+    _options.clear();
+    _optionImages.clear();
+
+    showCoolSuccessSnackbar(context, 'poll published successfully');
 
     setState(() {
       _isLoading = false;
     });
+    Navigator.pop(context);
   }
 
   Future<File> getImageFileFromAssets(String path, String name) async {
@@ -820,6 +822,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
 // Function to add a poll to Firestore
   Future<void> addPollToFirestore(PollModel poll) async {
     final provider = Provider.of<UserProvider>(context, listen: false);
+
     try {
       // Reference to the "allPolls" collection
       CollectionReference allPolls =

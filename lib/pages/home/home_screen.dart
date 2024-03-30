@@ -2,13 +2,17 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:polls/controllers/check_if_tasks.dart';
+import 'package:polls/controllers/vote_controller.dart';
 import 'package:polls/pages/polls/create_poll_screen.dart';
 import 'package:polls/utils/check_and_return_polls.dart';
+import 'package:polls/widgets/custom_error_box_wdiget.dart';
 
 import '../../const/colors.dart';
 import '../../const/fonts.dart';
 import '../../models/polls_model.dart';
 import '../../navigation/side_menu_navbar.dart';
+import '../../utils/snackbar_widget.dart';
 import '../../widgets/loading_polls_shimmer_widget.dart';
 import '../../widgets/poll_item_widget.dart';
 
@@ -22,15 +26,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  List<PollModel> polls = [];
-
   ScrollController forYouScrollController = ScrollController();
   ScrollController followingsScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _fetchPolls();
+    _fetchPolls(false);
   }
 
   @override
@@ -40,23 +42,82 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchPolls() async {
-    QuerySnapshot snapshot = await _firestore
-        .collection('allPolls')
-        .orderBy('timestamp', descending: true)
-        .get();
+  List<PollModel> polls = [];
 
-    polls = snapshot.docs
-        .map((doc) => PollModel.fromJson(doc.data() as Map<String, dynamic>))
-        .toList();
+  int listLength = 10;
 
-    polls = await checkAndReturnPolls(polls);
+  DocumentSnapshot? lastDocument;
+  bool _isLoading = false;
+  bool _isButtonLoading = false;
 
-    setState(() {});
+  Future<void> _fetchPolls(bool next) async {
+    if (!next) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+    final firestore = FirebaseFirestore.instance;
+
+    QuerySnapshot<Map<String, dynamic>> pollCollection;
+
+    if (next) {
+      setState(() {
+        _isButtonLoading = true;
+      });
+      pollCollection = await firestore
+          .collection('allPolls')
+          .startAfterDocument(lastDocument!)
+          .limit(listLength)
+          .get();
+    } else {
+      pollCollection =
+          await firestore.collection('allPolls').limit(listLength).get();
+    }
+
+    if (pollCollection.docs.isEmpty) {
+      polls.clear();
+      await deleteSeenData(context: context);
+      _refreshPolls();
+      return;
+    }
+
+    lastDocument =
+        pollCollection.docs.isNotEmpty ? pollCollection.docs.last : null;
+
+    for (final pollDoc in pollCollection.docs) {
+      try {
+        final pollData = pollDoc.data();
+        final poll = PollModel.fromJson(pollData);
+        // final isSeen = await checkIfSeen(poll);
+        // if (!isSeen) {
+        //   final poll0 = await checkAndReturnPoll(poll);
+        //   polls.add(poll0);
+        // }
+        polls.add(poll);
+      } catch (e) {
+        print('error');
+        print(e);
+      }
+    }
+
+    if (polls.isEmpty) {
+      polls.clear();
+      final deleted = await deleteSeenData(context: context);
+      if (deleted) {
+        _refreshPolls();
+        return;
+      }
+    }
+
+    setState(() {
+      _isLoading = false;
+      _isButtonLoading = false;
+    });
   }
 
   Future<void> _refreshPolls() async {
-    await _fetchPolls();
+    print('refresh');
+    _fetchPolls(false);
   }
 
   @override
@@ -112,49 +173,74 @@ class _HomeScreenState extends State<HomeScreen> {
         body: TabBarView(
           children: [
             // Content for 'You' tab
-            RefreshIndicator(
-              onRefresh: _refreshPolls,
-              child: PageStorage(
-                key: const PageStorageKey('ForYouTab'),
-                bucket: PageStorageBucket(),
-                child: SingleChildScrollView(
-                  controller: forYouScrollController,
-                  child: Column(
-                    children: [
-                      if (polls.isEmpty)
-                        const Column(
-                          children: [
-                            LoadingPollsShimmer(),
-                            LoadingPollsShimmer(),
-                            LoadingPollsShimmer(),
-                            LoadingPollsShimmer()
-                          ],
-                        )
-                      else
-                        ListView.builder(
-                          controller: forYouScrollController,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: polls.length,
-                          itemBuilder: (context, index) {
-                            final poll = polls[index];
-                            return PollCard(
-                              key: PageStorageKey(poll.id),
-                              poll: poll,
-                              isInsideList: false,
-                              deleteTap: () {
-                                setState(() {
-                                  polls.removeAt(index);
-                                });
-                              },
+            PageStorage(
+              key: const PageStorageKey('ForYouTab'),
+              bucket: PageStorageBucket(),
+              child: SingleChildScrollView(
+                controller: forYouScrollController,
+                child: Column(
+                  children: [
+                    if (polls.isEmpty && !_isLoading)
+                      const CustomErrorBox(text: 'something wend wrong!'),
+                    if (_isLoading)
+                      const Column(
+                        children: [
+                          LoadingPollsShimmer(),
+                          LoadingPollsShimmer(),
+                          LoadingPollsShimmer(),
+                          LoadingPollsShimmer()
+                        ],
+                      ),
+                    if (!_isLoading && polls.isNotEmpty)
+                      ListView.builder(
+                        controller: forYouScrollController,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: polls.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == polls.length) {
+                            return Center(
+                              child: _isButtonLoading
+                                  ? const CircularProgressIndicator()
+                                  : Column(
+                                      children: [
+                                        if (polls.length >= polls.length)
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              _fetchPolls(true);
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppColors
+                                                  .secondaryColor, // Change the button color
+                                            ),
+                                            child: Text('load more...',
+                                                style:
+                                                    AppFonts.buttonTextStyle),
+                                          ),
+                                        const SizedBox(
+                                          height: 25,
+                                        )
+                                      ],
+                                    ),
                             );
-                          },
-                        ),
-                      const SizedBox(
-                        height: 180,
-                      )
-                    ],
-                  ),
+                          }
+                          final poll = polls[index];
+                          return PollCard(
+                            key: PageStorageKey(poll.id),
+                            poll: poll,
+                            isInsideList: false,
+                            deleteTap: () {
+                              setState(() {
+                                polls.removeAt(index);
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    const SizedBox(
+                      height: 180,
+                    )
+                  ],
                 ),
               ),
             ),

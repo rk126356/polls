@@ -1,27 +1,26 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:polls/const/fonts.dart';
-import 'package:polls/models/polls_model.dart';
-import 'package:polls/utils/check_and_return_polls.dart';
+import 'package:polls/controllers/fetch_user.dart';
+import 'package:polls/models/lists_model.dart';
+import 'package:polls/pages/search/inside_search_screen.dart';
 import 'package:polls/utils/snackbar_widget.dart';
-import 'package:polls/widgets/loading_polls_shimmer_widget.dart';
-import 'package:polls/widgets/poll_item_widget.dart';
+import 'package:polls/widgets/custom_error_box_wdiget.dart';
+import 'package:polls/widgets/list_box_widget.dart';
 
 import '../../../const/colors.dart';
-import '../../../widgets/custom_error_box_wdiget.dart';
 
-class InsideUserPollsScreen extends StatefulWidget {
-  final String uid;
-  final String username;
-  const InsideUserPollsScreen(
-      {super.key, required this.uid, required this.username});
+class InsideALlListsScreen extends StatefulWidget {
+  const InsideALlListsScreen({super.key});
 
   @override
-  State<InsideUserPollsScreen> createState() => _InsideUserPollsScreenState();
+  State<InsideALlListsScreen> createState() => _InsideALlListsScreenState();
 }
 
-class _InsideUserPollsScreenState extends State<InsideUserPollsScreen> {
-  List<PollModel> polls = [];
+class _InsideALlListsScreenState extends State<InsideALlListsScreen> {
+  final List<ListsModel> _lists = [];
 
   int listLength = 10;
 
@@ -29,39 +28,44 @@ class _InsideUserPollsScreenState extends State<InsideUserPollsScreen> {
   bool _isLoading = false;
   bool _isButtonLoading = false;
 
-  Future<void> _fetchPolls(bool next, context) async {
-    if (polls.isEmpty) {
+  @override
+  void initState() {
+    super.initState();
+    _fetchLists(false, context);
+  }
+
+  Future<void> _fetchLists(bool next, context) async {
+    if (!next) {
+      _lists.clear();
       setState(() {
         _isLoading = true;
       });
     }
     final firestore = FirebaseFirestore.instance;
 
-    QuerySnapshot<Map<String, dynamic>> pollCollection;
+    QuerySnapshot<Map<String, dynamic>> quizCollection;
 
     if (next) {
       setState(() {
         _isButtonLoading = true;
       });
-      pollCollection = await firestore
-          .collection('allPolls')
-          .orderBy('timestamp', descending: true)
-          .where('creatorId', isEqualTo: widget.uid)
-          .startAfter([lastDocument?['timestamp']])
+      quizCollection = await firestore
+          .collection('allLists')
+          .orderBy('createdAt', descending: true)
+          .startAfter([lastDocument?['createdAt']])
           .limit(listLength)
           .get();
     } else {
-      pollCollection = await firestore
-          .collection('allPolls')
-          .orderBy('timestamp', descending: true)
-          .where('creatorId', isEqualTo: widget.uid)
+      quizCollection = await firestore
+          .collection('allLists')
+          .orderBy('createdAt', descending: true)
           .limit(listLength)
           .get();
     }
 
-    if (pollCollection.docs.isEmpty) {
+    if (quizCollection.docs.isEmpty) {
       if (next) {
-        showCoolErrorSnackbar(context, 'no more polls available.');
+        showCoolErrorSnackbar(context, 'no more lists available.');
       }
       setState(() {
         _isButtonLoading = false;
@@ -71,30 +75,19 @@ class _InsideUserPollsScreenState extends State<InsideUserPollsScreen> {
     }
 
     lastDocument =
-        pollCollection.docs.isNotEmpty ? pollCollection.docs.last : null;
+        quizCollection.docs.isNotEmpty ? quizCollection.docs.last : null;
 
-    for (final pollDoc in pollCollection.docs) {
-      try {
-        final pollData = pollDoc.data();
-        final poll = PollModel.fromJson(pollData);
-
-        polls.add(poll);
-      } catch (e) {
-        print(e);
-      }
+    for (final listDoc in quizCollection.docs) {
+      final pollData = listDoc.data();
+      final list = ListsModel.fromJson(pollData);
+      list.user = await fetchUser(list.userId);
+      _lists.add(list);
     }
 
-    polls = await checkAndReturnPolls(polls);
     setState(() {
       _isLoading = false;
       _isButtonLoading = false;
     });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchPolls(false, context);
   }
 
   @override
@@ -104,40 +97,43 @@ class _InsideUserPollsScreenState extends State<InsideUserPollsScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.primaryColor,
         iconTheme: const IconThemeData(color: AppColors.headingText),
+        actions: [
+          IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const InsdieSearchScreen()),
+                );
+              },
+              icon: const Icon(Icons.search))
+        ],
         title: Text(
-          '@${widget.username}: polls',
+          'all lists',
           style: AppFonts.headingTextStyle,
         ),
       ),
       body: _isLoading
-          ? const SingleChildScrollView(
-              child: Column(
-                children: [
-                  LoadingPollsShimmer(),
-                  LoadingPollsShimmer(),
-                  LoadingPollsShimmer()
-                ],
-              ),
-            )
-          : polls.isEmpty && !_isLoading
-              ? const CustomErrorBox(text: 'no polls available!')
+          ? const Center(child: CircularProgressIndicator())
+          : _lists.isEmpty && !_isLoading
+              ? const CustomErrorBox(text: 'no lists available!')
               : Column(
                   children: [
                     Expanded(
                       child: ListView.builder(
                         scrollDirection: Axis.vertical,
-                        itemCount: polls.length + 1,
+                        itemCount: _lists.length + 1,
                         itemBuilder: (context, index) {
-                          if (index == polls.length) {
+                          if (index == _lists.length) {
                             return Center(
                               child: _isButtonLoading
                                   ? const CircularProgressIndicator()
                                   : Column(
                                       children: [
-                                        if (polls.length >= 10)
+                                        if (_lists.length >= 10)
                                           ElevatedButton(
                                             onPressed: () {
-                                              _fetchPolls(true, context);
+                                              _fetchLists(true, context);
                                             },
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: AppColors
@@ -154,17 +150,12 @@ class _InsideUserPollsScreenState extends State<InsideUserPollsScreen> {
                                     ),
                             );
                           }
-                          final poll = polls[index];
+                          final list = _lists[index];
 
-                          return PollCard(
-                            key: PageStorageKey(poll.id),
-                            poll: poll,
-                            isInsideList: false,
-                            deleteTap: () {
-                              setState(() {
-                                polls.removeAt(index);
-                              });
-                            },
+                          return Padding(
+                            padding: const EdgeInsets.only(
+                                left: 8, right: 8, top: 4),
+                            child: ListBox(list: list, shouldTap: true),
                           );
                         },
                       ),

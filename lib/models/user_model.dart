@@ -11,6 +11,7 @@ class UserModel {
   int? noOfFollowers;
   int? noOfFollowings;
   int? noOfPolls;
+  int? noOfLists;
   Timestamp? votedTimestamp;
   String? option;
   String? why;
@@ -27,6 +28,7 @@ class UserModel {
     this.noOfFollowers,
     this.noOfFollowings,
     this.noOfPolls,
+    this.noOfLists,
     this.votedTimestamp,
     this.option,
     this.why,
@@ -45,6 +47,7 @@ class UserModel {
       noOfFollowers: json['noOfFollowers'] ?? 0,
       noOfFollowings: json['noOfFollowings'] ?? 0,
       noOfPolls: json['noOfPolls'] ?? 0,
+      noOfLists: json['noOfLists'] ?? 0,
       // Map other JSON keys to corresponding attributes
     );
   }
@@ -58,9 +61,10 @@ class UserModel {
       'mobileNumber': mobileNumber,
       'avatarUrl': avatarUrl,
       'userName': userName,
-      'noOfFollowers': noOfFollowers,
-      'noOfFollowings': noOfFollowings,
-      'noOfPolls': noOfPolls,
+      'noOfFollowers': noOfFollowers ?? 0,
+      'noOfFollowings': noOfFollowings ?? 0,
+      'noOfPolls': noOfPolls ?? 0,
+      'noOfLists': noOfLists ?? 0,
       // Add other attributes as needed
     };
   }

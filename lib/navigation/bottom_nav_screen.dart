@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:polls/const/fonts.dart';
 import 'package:polls/pages/profile/profile_screen.dart';
+import 'package:polls/pages/topics/topics_screen.dart';
 
 import '../const/colors.dart';
 import '../pages/home/home_screen.dart';
@@ -19,7 +20,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
   final List<Widget> _screens = <Widget>[
     const HomeScreen(key: PageStorageKey('HomeScreen')),
     const SearchScreen(key: PageStorageKey('SearchScreen')),
-    const SearchScreen(key: PageStorageKey('TopicsScreen')),
+    const TopicsScreen(key: PageStorageKey('TopicsScreen')),
     const ProfileScreen(key: PageStorageKey('ProfileScreen')),
   ];
 

@@ -75,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
             'noOfFollowers': 0,
             'noOfPolls': 0,
             'noOfFollowings': 0,
+            'noOfLists': 0,
           });
 
           data.setUserData(UserModel(

@@ -4,6 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:polls/const/fonts.dart';
+import 'package:polls/models/user_model.dart';
+import 'package:polls/pages/profile/inside/inside_followers_screen.dart';
+import 'package:polls/pages/profile/inside/inside_followings_screen.dart';
+import 'package:polls/pages/profile/inside/inside_user_lists_screen.dart';
+import 'package:polls/pages/profile/inside/inside_user_polls_screen.dart';
+import 'package:polls/pages/profile/inside/my_activity_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -169,6 +175,7 @@ class _ProfileStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var data = Provider.of<UserProvider>(context, listen: false);
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
@@ -183,20 +190,34 @@ class _ProfileStats extends StatelessWidget {
         var followers = userData['noOfFollowers'] ?? 0;
         var polls = userData['noOfPolls'] ?? 0;
         var followings = userData['noOfFollowings'] ?? 0;
+        final userNow = UserModel.fromJson(userData);
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             InkWell(
-              onTap: () {},
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => InsideUserPollsScreen(
+                      uid: userNow.userId,
+                      username: userNow.userName,
+                    ),
+                  ),
+                );
+              },
               child: _StatItem("polls", '$polls'),
             ),
             InkWell(
               onTap: () {
-                Navigator.push(
-                  context,
+                Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => const SettingsScreen(),
+                    builder: (context) => InsideFollowersScreen(
+                      userID: user.uid,
+                      username: userNow.userName,
+                      noOfFollowers: userNow.noOfFollowers ?? 0,
+                      name: userNow.name,
+                    ),
                   ),
                 );
               },
@@ -204,10 +225,14 @@ class _ProfileStats extends StatelessWidget {
             ),
             InkWell(
               onTap: () {
-                Navigator.push(
-                  context,
+                Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => const SettingsScreen(),
+                    builder: (context) => InsideFollowingsScreen(
+                      userID: user.uid,
+                      username: userNow.userName,
+                      noOfFollowers: userNow.noOfFollowers ?? 0,
+                      name: userNow.name,
+                    ),
                   ),
                 );
               },
@@ -248,6 +273,7 @@ class _QuickLinks extends StatefulWidget {
 class _QuickLinksState extends State<_QuickLinks> {
   @override
   Widget build(BuildContext context) {
+    var data = Provider.of<UserProvider>(context, listen: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -268,7 +294,31 @@ class _QuickLinksState extends State<_QuickLinks> {
           leading:
               const Icon(Icons.poll_outlined, color: AppColors.secondaryColor),
           title: const Text("my polls"),
-          onTap: () {},
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => InsideUserPollsScreen(
+                  uid: data.userData.userId,
+                  username: data.userData.userName,
+                ),
+              ),
+            );
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.list, color: AppColors.secondaryColor),
+          title: const Text("my lists"),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => InsideUserListsScreen(
+                  uid: data.userData.userId,
+                  username: data.userData.userName,
+                  count: data.userData.noOfLists,
+                ),
+              ),
+            );
+          },
         ),
         ListTile(
           leading: const Icon(Icons.history_outlined,
@@ -278,7 +328,7 @@ class _QuickLinksState extends State<_QuickLinks> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const SettingsScreen(),
+                builder: (context) => const MyActivityScreen(),
               ),
             );
           },

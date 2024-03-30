@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -12,6 +14,7 @@ import 'package:polls/widgets/tags_box_widget.dart';
 import 'package:polls/widgets/user_box_widget.dart';
 import '../../const/colors.dart';
 import '../../const/fonts.dart';
+import '../../controllers/fetch_user.dart';
 import '../../utils/check_and_return_polls.dart';
 import '../../widgets/poll_item_widget.dart';
 
@@ -123,6 +126,10 @@ class _InsdieSearchScreenState extends State<InsdieSearchScreen>
 
     _allLists =
         snapshot.docs.map((doc) => ListsModel.fromJson(doc.data())).toList();
+
+    for (final list in _allLists) {
+      list.user = await fetchUser(list.userId);
+    }
 
     print('list');
     setState(() {});

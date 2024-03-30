@@ -31,7 +31,8 @@ class _InsideVotedScreenState extends State<InsideVotedScreen> {
     try {
       _users.clear();
       final pollRef = await FirebaseFirestore.instance
-          .collection('allPolls/${widget.poll.id}/votes')
+          .collection('allVotes')
+          .where('pollId', isEqualTo: widget.poll.id)
           .orderBy('createdAt', descending: isSortByNew)
           .get();
 

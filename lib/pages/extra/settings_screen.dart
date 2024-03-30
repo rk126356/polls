@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../const/colors.dart';
+import '../../const/fonts.dart';
 import '../../utils/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -21,9 +22,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: AppColors.secondaryColor,
-        title: const Text(
-          'Settings',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          'settings',
+          style: AppFonts.headingTextStyle.copyWith(color: Colors.white),
         ),
       ),
       body: Column(

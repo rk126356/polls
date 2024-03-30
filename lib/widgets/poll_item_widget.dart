@@ -6,17 +6,16 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:polls/pages/home/home_screen.dart';
-import 'package:polls/pages/polls/inside/inside_poll_screen.dart';
+import 'package:polls/controllers/poll_firebase/list_controller_firebase.dart';
 import 'package:polls/pages/polls/inside/inside_tag_screen.dart';
 import 'package:polls/pages/polls/inside_voted_screen.dart';
 import 'package:polls/pages/polls/inside/inside_lists_screen.dart';
 import 'package:polls/pages/profile/inside/inside_profile_screen.dart';
+import 'package:polls/utils/check_and_return_polls.dart';
 import 'package:polls/utils/count_line_breakes.dart';
 import 'package:polls/utils/share_tool.dart';
 import 'package:polls/utils/snackbar_widget.dart';
 import 'package:polls/widgets/loading_polls_shimmer_widget.dart';
-import 'package:polls/widgets/option_shimmer.dart';
 import 'package:polls/widgets/photo_max_view.dart';
 import 'package:provider/provider.dart';
 
@@ -26,6 +25,8 @@ import '../controllers/check_if_tasks.dart';
 import '../controllers/vote_controller.dart';
 import '../models/polls_model.dart';
 import '../provider/user_provider.dart';
+import '../utils/publish.dart';
+import '../utils/show_list_popup.dart';
 import 'error_poll_widget.dart';
 import 'show_poll_bottom_menu.dart';
 
@@ -33,12 +34,16 @@ class PollCard extends StatefulWidget {
   final PollModel poll;
   final bool isInsideList;
   final VoidCallback? deleteTap;
+  final VoidCallback? listDeletePollTap;
+  final String? tempListName;
 
   const PollCard({
     super.key,
     required this.isInsideList,
     required this.poll,
     this.deleteTap,
+    this.listDeletePollTap,
+    this.tempListName,
   });
 
   @override
@@ -75,12 +80,7 @@ class _PollCardState extends State<PollCard> {
 
     final poll = PollModel.fromJson(doc.data() as Map<String, dynamic>);
 
-    _poll = poll;
-
-    final data = await checkIfVoted(poll);
-    voted = data.isVoted;
-    _poll.isVoted = data.isVoted;
-    _poll.option = data.option;
+    _poll = await checkAndReturnPoll(poll);
 
     if (reload) {
       setState(() {
@@ -98,6 +98,7 @@ class _PollCardState extends State<PollCard> {
         _poll.views++;
       });
     }
+    await saveSeen(context: context, poll: widget.poll);
   }
 
   @override
@@ -110,6 +111,7 @@ class _PollCardState extends State<PollCard> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<UserProvider>(context);
     return _isError
         ? const ErrorPollBox()
         : _isLoading
@@ -489,13 +491,15 @@ class _PollCardState extends State<PollCard> {
                               ),
                               InkWell(
                                 onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => InsideVotedScreen(
-                                        poll: _poll,
+                                  if (voted) {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => InsideVotedScreen(
+                                          poll: _poll,
+                                        ),
                                       ),
-                                    ),
-                                  );
+                                    );
+                                  }
                                 },
                                 child: Row(
                                   children: [
@@ -509,22 +513,50 @@ class _PollCardState extends State<PollCard> {
                                 ),
                               ),
                               InkWell(
-                                onTap: () {
+                                onTap: () async {
                                   sharePoll(_poll);
+                                  final shared = await saveShares(
+                                      context: context, poll: _poll);
+                                  if (!shared) {
+                                    setState(() {
+                                      _poll.shares++;
+                                    });
+                                  }
                                 },
-                                child: const Row(
+                                child: Row(
                                   children: [
-                                    Icon(Icons.share, color: Colors.green),
-                                    SizedBox(width: 5),
-                                    Text('5',
-                                        style: TextStyle(color: Colors.grey)),
+                                    const Icon(Icons.share,
+                                        color: Colors.green),
+                                    const SizedBox(width: 5),
+                                    Text(_poll.shares.toString(),
+                                        style: const TextStyle(
+                                            color: Colors.grey)),
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.playlist_add,
-                                  color: Colors.pink),
+                              provider.isButtonLoading
+                                  ? const CircularProgressIndicator()
+                                  : InkWell(
+                                      onTap: () {
+                                        showModalBottomSheet(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return ListPopup(
+                                              poll: _poll,
+                                            );
+                                          },
+                                        );
+                                      },
+                                      child: const Icon(Icons.playlist_add,
+                                          color: Colors.pink),
+                                    ),
                               InkWell(
-                                  onTap: () {
+                                  onTap: () async {
+                                    // updatePost(
+                                    //     '${_poll.question} - ID: ${_poll.id}',
+                                    //     '${_poll.question} - ID: ${_poll.id}',
+                                    //     generatePostContent(_poll),
+                                    //     _poll);
                                     showPollMenu(context);
                                   },
                                   child: const Icon(Icons.more_vert,
@@ -630,10 +662,10 @@ class _PollCardState extends State<PollCard> {
                               _isVoting = false;
                             });
                             if (isPollFound) {
-                              widget.deleteTap!();
-                              final isDeleted =
-                                  await deletePoll(pollId: _poll.id);
+                              final isDeleted = await deletePoll(
+                                  poll: _poll, userId: _poll.creatorId);
                               if (isDeleted) {
+                                widget.deleteTap!();
                                 Navigator.pop(context);
                                 showCoolSuccessSnackbar(
                                     context, 'poll is successfully deleted');
@@ -649,6 +681,42 @@ class _PollCardState extends State<PollCard> {
                             showCoolErrorSnackbar(
                                 context, 'something went wrong!');
                           }
+                          provider.setButtonLoading(false);
+                        },
+                      ),
+              if (widget.listDeletePollTap != null)
+                provider.isButtonLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : buildListTile(
+                        icon: Icons.delete,
+                        title: 'remove',
+                        onTap: () async {
+                          provider.setButtonLoading(true);
+
+                          setState(() {
+                            _isVoting = true;
+                          });
+                          final isPollFound = await pollFound(pollId: _poll.id);
+                          setState(() {
+                            _isVoting = false;
+                          });
+                          if (isPollFound) {
+                            final isDeleted = await deleteListPoll(
+                                context, widget.tempListName ?? '', _poll.id);
+                            if (isDeleted) {
+                              widget.listDeletePollTap!();
+                              Navigator.pop(context);
+                              showCoolSuccessSnackbar(
+                                  context, 'poll is successfully removed');
+                            } else {
+                              showCoolErrorSnackbar(context,
+                                  'poll is already removed or something went wrong!');
+                            }
+                          } else {
+                            showCoolErrorSnackbar(context,
+                                'poll was not found or something went wrong!');
+                          }
+
                           provider.setButtonLoading(false);
                         },
                       ),
